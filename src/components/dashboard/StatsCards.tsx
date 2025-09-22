@@ -1,89 +1,155 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Badge } from '../ui/badge';
+import { TrendingUp, TrendingDown, Minus, Target, Users, MessageSquare, Zap } from 'lucide-react';
+import TrendIndicator from './TrendIndicator';
 
 const stats = [
   {
-    title: 'New Submissions',
-    value: '23',
-    description: 'Today',
-    change: '+12%',
+    title: 'Form Submissions',
+    value: '125',
+    description: 'This week',
+    change: 24.3,
     changeType: 'positive' as const,
-    comparison: 'vs yesterday',
-  },
-  {
-    title: 'This Month',
-    value: '1,249',
-    description: 'Total submissions',
-    change: '+23',
-    changeType: 'positive' as const,
-    comparison: 'from last month',
-    progress: 68,
-  },
-  {
-    title: 'Total Leads',
-    value: '12,847',
-    description: 'All-time submissions',
-    change: '0%',
-    changeType: 'neutral' as const,
-    comparison: 'this week',
+    comparison: 'vs last week',
+    icon: MessageSquare,
+    color: 'blue',
+    insights: 'Peak on Saturday',
+    goal: 150,
+    current: 125,
   },
   {
     title: 'Conversion Rate',
-    value: '24.5%',
+    value: '28.4%',
     description: 'Leads converted',
-    change: '-2.1%',
-    changeType: 'negative' as const,
-    comparison: 'from last month',
+    change: 6.2,
+    changeType: 'positive' as const,
+    comparison: 'vs last month',
+    icon: Target,
+    color: 'green',
+    insights: 'Above industry avg',
+    benchmark: '22%',
+  },
+  {
+    title: 'Active Visitors',
+    value: '2,847',
+    description: 'Monthly unique',
+    change: 15.8,
+    changeType: 'positive' as const,
+    comparison: 'vs last month',
+    icon: Users,
+    color: 'purple',
+    insights: 'Organic growth',
+    progress: 71.2,
+    progressLabel: 'Monthly goal progress',
+  },
+  {
+    title: 'Avg. Response Time',
+    value: '2.3h',
+    description: 'Lead response',
+    change: -18.5,
+    changeType: 'positive' as const,
+    comparison: 'improvement',
+    icon: Zap,
+    color: 'orange',
+    insights: 'Under target',
+    target: '< 4h',
   },
 ];
+
+const getColorClasses = (color: string) => {
+  const colors = {
+    blue: 'text-blue-600 bg-blue-100',
+    green: 'text-green-600 bg-green-100',
+    purple: 'text-purple-600 bg-purple-100',
+    orange: 'text-orange-600 bg-orange-100',
+  };
+  return colors[color as keyof typeof colors] || colors.blue;
+};
 
 export default function StatsCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat, index) => (
-        <Card key={index}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {stat.title}
-            </CardTitle>
-            {stat.changeType === 'positive' && <TrendingUp className="h-4 w-4 text-green-600" />}
-            {stat.changeType === 'negative' && <TrendingDown className="h-4 w-4 text-red-600" />}
-            {stat.changeType === 'neutral' && <Minus className="h-4 w-4 text-muted-foreground" />}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-xs text-muted-foreground mb-2">
-              {stat.description}
-            </p>
-            {stat.progress && (
-              <div className="mb-2">
-                <Progress value={stat.progress} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.progress}% of month completed
-                </p>
+      {stats.map((stat, index) => {
+        const IconComponent = stat.icon;
+        const colorClasses = getColorClasses(stat.color);
+        
+        return (
+          <Card key={index} className="relative overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.title}
+              </CardTitle>
+              <div className={`p-2 rounded-lg ${colorClasses}`}>
+                <IconComponent className="h-4 w-4" />
               </div>
-            )}
-            <div className="flex items-center text-xs">
-              <span
-                className={`font-medium ${
-                  stat.changeType === 'positive'
-                    ? 'text-green-600'
-                    : stat.changeType === 'negative'
-                    ? 'text-red-600'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                {stat.change}
-              </span>
-              <span className="text-muted-foreground ml-1">
-                {stat.comparison}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <TrendIndicator
+                  value={stat.change}
+                  label={stat.comparison}
+                  trend={
+                    stat.title === 'Avg. Response Time' 
+                      ? (stat.change < 0 ? 'up' : 'down')
+                      : (stat.change > 0 ? 'up' : stat.change < 0 ? 'down' : 'neutral')
+                  }
+                  percentage={Math.abs(stat.change)}
+                  className="text-xs"
+                />
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                {stat.description}
+              </p>
+
+              {/* Progress Bar for Goals */}
+              {stat.goal && stat.current && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>Goal Progress</span>
+                    <span>{Math.round((stat.current / stat.goal) * 100)}%</span>
+                  </div>
+                  <Progress value={(stat.current / stat.goal) * 100} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    {stat.current} of {stat.goal} target
+                  </p>
+                </div>
+              )}
+
+              {/* Monthly Progress */}
+              {stat.progress && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>{stat.progressLabel}</span>
+                    <span>{stat.progress}%</span>
+                  </div>
+                  <Progress value={stat.progress} className="h-2" />
+                </div>
+              )}
+
+              {/* Insights & Benchmarks */}
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="text-xs">
+                  {stat.insights}
+                </Badge>
+                {stat.benchmark && (
+                  <span className="text-xs text-muted-foreground">
+                    Industry: {stat.benchmark}
+                  </span>
+                )}
+                {stat.target && (
+                  <span className="text-xs text-muted-foreground">
+                    Target: {stat.target}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

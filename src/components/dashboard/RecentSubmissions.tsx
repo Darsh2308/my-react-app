@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Eye, Check, X } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // Create a forwardRef wrapper for Link to fix ref forwarding issues
 const ForwardedLink = React.forwardRef<HTMLAnchorElement, React.ComponentProps<typeof Link>>((props, ref) => (
   <Link {...props} ref={ref} />
 ));
 
-const mockSubmissions = [
+const initialSubmissions = [
   {
     id: '1',
     name: 'John Smith',
@@ -73,6 +75,15 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function RecentSubmissions() {
+  const [submissions, setSubmissions] = useState(initialSubmissions);
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setSubmissions(submissions.map(sub => 
+      sub.id === id ? { ...sub, status: newStatus } : sub
+    ));
+    toast.success(`Status updated to ${newStatus}`);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -96,7 +107,7 @@ export default function RecentSubmissions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockSubmissions.map((submission) => (
+              {submissions.map((submission) => (
                 <TableRow key={submission.id}>
                   <TableCell>{submission.name}</TableCell>
                   <TableCell>{submission.email}</TableCell>
@@ -107,16 +118,33 @@ export default function RecentSubmissions() {
                   <TableCell className="hidden lg:table-cell">
                     {submission.datetime}
                   </TableCell>
-                  <TableCell>{getStatusBadge(submission.status)}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Select
+                      value={submission.status}
+                      onValueChange={(value) => handleStatusChange(submission.id, value)}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue>
+                          {getStatusBadge(submission.status)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">
+                          <Badge variant="destructive">New</Badge>
+                        </SelectItem>
+                        <SelectItem value="read">
+                          <Badge variant="secondary">Read</Badge>
+                        </SelectItem>
+                        <SelectItem value="converted">
+                          <Badge variant="default" className="bg-green-600">Converted</Badge>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,5 +1,6 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ClerkProvider, useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { Toaster } from './components/ui/sonner';
 import LoginPage from './components/auth/LoginPage';
 import Dashboard from './components/dashboard/Dashboard';
@@ -22,9 +23,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
   isAuthenticated: boolean;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,31 +37,45 @@ export const useAuth = () => {
   return context;
 };
 
+// Function to determine user role
+const getUserRole = (email: string): 'super_admin' | 'admin' | 'editor' => {
+  if (email.includes('admin') || email === 'admin@example.com') {
+    return 'super_admin';
+  }
+  if (email.includes('manager')) {
+    return 'admin';
+  }
+  return 'editor';
+};
+
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut } = useClerkAuth();
 
-  const login = async (email: string, password: string) => {
-    // Mock authentication
-    if (email === 'admin@example.com' && password === 'password') {
-      setUser({
-        id: '1',
-        name: 'John Admin',
-        email: 'admin@example.com',
-        role: 'super_admin'
-      });
-      return true;
-    }
-    return false;
+  // Transform Clerk user to our User interface
+  const user: User | null = React.useMemo(() => {
+    if (!isLoaded || !clerkUser) return null;
+    
+    return {
+      id: clerkUser.id,
+      name: clerkUser.fullName || clerkUser.firstName || 'User',
+      email: clerkUser.primaryEmailAddress?.emailAddress || '',
+      role: getUserRole(clerkUser.primaryEmailAddress?.emailAddress || ''),
+    };
+  }, [clerkUser, isLoaded]);
+
+  const logout = async () => {
+    await signOut();
   };
 
-  const logout = () => {
-    setUser(null);
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    logout,
   };
-
-  const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -77,7 +91,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export default function App() {
+function AppContent() {
   return (
     <AuthProvider>
       <Router>
@@ -110,5 +124,29 @@ export default function App() {
         </div>
       </Router>
     </AuthProvider>
+  );
+}
+
+export default function App() {
+  // Get Clerk publishable key from environment
+  const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+  if (!clerkPubKey || clerkPubKey === 'pk_test_your_clerk_publishable_key_here') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Configuration Error</h1>
+          <p className="text-muted-foreground">
+            Please set up your Clerk publishable key in the environment variables.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ClerkProvider publishableKey={clerkPubKey}>
+      <AppContent />
+    </ClerkProvider>
   );
 }

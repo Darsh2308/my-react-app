@@ -74,16 +74,11 @@ export default function SitesManagement() {
   const [isConfigureDialogOpen, setIsConfigureDialogOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [newSite, setNewSite] = useState<{
-    name: string;
-    domain: string;
-    description: string;
-    status: Site['status'];
-  }>({
+  const [newSite, setNewSite] = useState({
     name: '',
     domain: '',
     description: '',
-    status: 'active',
+    status: 'active' as const,
   });
   const [configForm, setConfigForm] = useState({
     name: '',
@@ -259,7 +254,15 @@ export default function SitesManagement() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="status">Initial Status</Label>
-                <Select value={newSite.status} onValueChange={(value: Site['status']) => setNewSite({ ...newSite, status: value })}>
+                <Select
+                  value={newSite.status}
+                  onValueChange={(value) =>
+                    setNewSite({
+                      ...newSite,
+                      status: value as typeof newSite.status,
+                    })
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

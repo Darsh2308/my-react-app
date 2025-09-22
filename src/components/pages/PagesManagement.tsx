@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Edit, Eye, Trash2, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // Create a forwardRef wrapper for Link to fix ref forwarding issues
 const ForwardedLink = React.forwardRef<HTMLAnchorElement, React.ComponentProps<typeof Link>>((props, ref) => (
   <Link {...props} ref={ref} />
 ));
 
-const mockPages = [
+const initialPages = [
   {
     id: 'homepage',
     name: 'Homepage',
@@ -62,12 +64,37 @@ const getStatusBadge = (status: string) => {
       return <Badge variant="default" className="bg-green-600">Published</Badge>;
     case 'draft':
       return <Badge variant="secondary">Draft</Badge>;
+    case 'archived':
+      return <Badge variant="outline">Archived</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
 };
 
 export default function PagesManagement() {
+  const [pages, setPages] = useState(initialPages);
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    setPages(pages.map(page => 
+      page.id === id ? { 
+        ...page, 
+        status: newStatus,
+        lastModified: new Date().toISOString().slice(0, 16).replace('T', ' ')
+      } : page
+    ));
+    toast.success(`Page status updated to ${newStatus}`);
+  };
+
+  const handleDelete = (id: string) => {
+    const page = pages.find(p => p.id === id);
+    if (page?.id === 'homepage') {
+      toast.error('Cannot delete the homepage');
+      return;
+    }
+    setPages(pages.filter(page => page.id !== id));
+    toast.success('Page deleted successfully');
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -104,14 +131,36 @@ export default function PagesManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockPages.map((page) => (
+                {pages.map((page) => (
                   <TableRow key={page.id}>
                     <TableCell>{page.name}</TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">
                       {page.url}
                     </TableCell>
                     <TableCell>{page.lastModified}</TableCell>
-                    <TableCell>{getStatusBadge(page.status)}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={page.status}
+                        onValueChange={(value) => handleStatusChange(page.id, value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue>
+                            {getStatusBadge(page.status)}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="published">
+                            <Badge variant="default" className="bg-green-600">Published</Badge>
+                          </SelectItem>
+                          <SelectItem value="draft">
+                            <Badge variant="secondary">Draft</Badge>
+                          </SelectItem>
+                          <SelectItem value="archived">
+                            <Badge variant="outline">Archived</Badge>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button asChild variant="ghost" size="sm">
@@ -122,7 +171,12 @@ export default function PagesManagement() {
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDelete(page.id)}
+                          disabled={page.id === 'homepage'}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

@@ -6,7 +6,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Eye, Download, Search, Filter, Trash2, Check, X } from 'lucide-react';
+import { Eye, Download, Search, Filter, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const mockSubmissions = [
@@ -193,7 +193,29 @@ export default function FormsManagement() {
                     <TableCell className="hidden lg:table-cell">
                       {submission.datetime}
                     </TableCell>
-                    <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={submission.status}
+                        onValueChange={(value) => handleStatusChange(submission.id, value)}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue>
+                            {getStatusBadge(submission.status)}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">
+                            <Badge variant="destructive">New</Badge>
+                          </SelectItem>
+                          <SelectItem value="read">
+                            <Badge variant="secondary">Read</Badge>
+                          </SelectItem>
+                          <SelectItem value="converted">
+                            <Badge variant="default" className="bg-green-600">Converted</Badge>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button
@@ -202,14 +224,6 @@ export default function FormsManagement() {
                           onClick={() => setSelectedSubmission(submission)}
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleStatusChange(submission.id, 
-                            submission.status === 'new' ? 'read' : 'converted')}
-                        >
-                          <Check className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
